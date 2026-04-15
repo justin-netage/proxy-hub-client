@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@netage'
+          scope: '@netage-projects'
           cache: 'npm'
       - run: npm ci
       - run: npm run build

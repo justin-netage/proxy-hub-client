@@ -1,4 +1,4 @@
-# @netage/supabase-proxy-client
+# @netage-projects/supabase-proxy-client
 
 Transparent Supabase proxy client for the [Netage Proxy Hub](https://github.com/justin-netage/netage-proxy-hub). Lets a Lovable-hosted (or any Vite/React) frontend route Supabase traffic through a per-site reverse proxy, with **zero per-project configuration**. Each site's config (Supabase project ref, anon key, proxy custom domain) is fetched at runtime from the proxy hub based on the current hostname.
 
@@ -27,12 +27,12 @@ Lovable's build pipeline strips or overrides custom Vite env vars (`VITE_SUPABAS
 This package is published to **GitHub Packages** (private). Consumers need a `.npmrc` with a token that has `read:packages` scope:
 
 ```
-@netage:registry=https://npm.pkg.github.com
+@netage-projects:registry=https://npm.pkg.github.com
 //npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
 ```
 
 ```sh
-npm install @netage/supabase-proxy-client @supabase/supabase-js
+npm install @netage-projects/supabase-proxy-client @supabase/supabase-js
 ```
 
 If Lovable's build doesn't honor `.npmrc`, fall back to a git-URL install:
@@ -46,7 +46,7 @@ npm install git+https://github.com/justin-netage/proxy-hub-client.git#v1.0.0
 Drop this in `src/lib/supabase.ts` — identical across every Lovable project:
 
 ```ts
-import { initProxiedSupabase } from '@netage/supabase-proxy-client';
+import { initProxiedSupabase } from '@netage-projects/supabase-proxy-client';
 
 export const { supabase, proxyUrl } = await initProxiedSupabase({
   // Optional: used as a fallback when bootstrap fetch fails (localhost dev).
@@ -69,7 +69,7 @@ Use `proxyUrl()` to rewrite stored Supabase URLs (e.g. legacy `getPublicUrl()` r
 If you'd rather hardcode config and skip the bootstrap fetch:
 
 ```ts
-import { createProxiedSupabase } from '@netage/supabase-proxy-client';
+import { createProxiedSupabase } from '@netage-projects/supabase-proxy-client';
 
 export const { supabase, proxyUrl } = createProxiedSupabase({
   projectRef: 'abc123',
