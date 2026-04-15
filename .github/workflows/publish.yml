@@ -17,8 +17,7 @@ jobs:
           node-version: '20'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@justin-netage'
-          cache: 'npm'
-      - run: npm ci
+      - run: npm install
       - run: npm run build
       - run: npm test
       - run: npm publish
