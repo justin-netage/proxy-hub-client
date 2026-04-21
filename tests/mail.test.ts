@@ -45,7 +45,7 @@ describe('createMailClient', () => {
     );
   });
 
-  it('serializes the input as the JSON request body', async () => {
+  it('serializes the input as the JSON request body (no from/fromName set)', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     const mail = createMailClient({
       bootstrapUrl: 'https://afhco.gogee.ai/api/bootstrap',
@@ -68,13 +68,33 @@ describe('createMailClient', () => {
       formType: 'contact',
       pageUrl: '/contact',
     });
-    // The hub pins the from address — the client must never send one.
+    // When the caller doesn't set from/fromName, they must not appear on
+    // the wire. JSON.stringify elides `undefined` values, so the hub
+    // simply falls back to the site's configured defaults.
     expect(body.from).toBeUndefined();
+    expect(body.fromName).toBeUndefined();
+  });
+
+  it('forwards from and fromName verbatim when the caller sets them', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    const mail = createMailClient({
+      bootstrapUrl: 'https://afhco.gogee.ai/api/bootstrap',
+      fetch: fetchSpy as unknown as typeof fetch,
+    });
+    await mail.sendMail({
+      subject: 'Test',
+      html: '<p>body</p>',
+      from: 'applications@afhco.gogee.ai',
+      fromName: 'AFHCO Applications',
+    });
+    const body = JSON.parse(fetchSpy.mock.calls[0]?.[1]?.body as string);
+    expect(body.from).toBe('applications@afhco.gogee.ai');
+    expect(body.fromName).toBe('AFHCO Applications');
   });
 
   it('returns ok:false with the server error message on a non-2xx', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
-      jsonResponse({ error: 'Recipient not in allowlist' }, { status: 400 })
+      jsonResponse({ error: 'sender domain not authorised for this site' }, { status: 409 })
     );
     const mail = createMailClient({
       bootstrapUrl: 'https://afhco.gogee.ai/api/bootstrap',
@@ -83,8 +103,8 @@ describe('createMailClient', () => {
     const result = await mail.sendMail({ subject: 's', html: 'h' });
     expect(result).toEqual({
       ok: false,
-      status: 400,
-      error: 'Recipient not in allowlist (HTTP 400)',
+      status: 409,
+      error: 'sender domain not authorised for this site (HTTP 409)',
     });
   });
 

@@ -1,6 +1,6 @@
 {
   "name": "@justin-netage/supabase-proxy-client",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Transparent Supabase proxy client for the Netage Proxy Hub. Lets a Lovable/Vite frontend route Supabase traffic through a per-site proxy domain, with config fetched at runtime.",
   "type": "module",
   "main": "./dist/index.cjs",
