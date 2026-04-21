@@ -103,6 +103,13 @@ export interface SendMailInput {
   fromName?: string;
   replyTo?: string;
   /**
+   * Cloudflare Turnstile token, obtained from the Turnstile widget
+   * rendered on the form. Required when the site has
+   * `mail_captcha_required=true` (default) AND the hub has a
+   * Turnstile secret configured. Ignored otherwise.
+   */
+  captchaToken?: string;
+  /**
    * Free-form tag identifying which form on the site triggered the
    * send. Stored in `mail_log` for deliverability auditing. No
    * allowlist — any string works.

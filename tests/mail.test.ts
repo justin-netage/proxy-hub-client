@@ -45,7 +45,7 @@ describe('createMailClient', () => {
     );
   });
 
-  it('serializes the input as the JSON request body (no from/fromName set)', async () => {
+  it('serializes the input as the JSON request body (no overrides set)', async () => {
     const fetchSpy = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
     const mail = createMailClient({
       bootstrapUrl: 'https://afhco.gogee.ai/api/bootstrap',
@@ -68,11 +68,12 @@ describe('createMailClient', () => {
       formType: 'contact',
       pageUrl: '/contact',
     });
-    // When the caller doesn't set from/fromName, they must not appear on
-    // the wire. JSON.stringify elides `undefined` values, so the hub
-    // simply falls back to the site's configured defaults.
+    // Optional fields that the caller didn't set must not appear on the
+    // wire. JSON.stringify elides `undefined` values, so the hub simply
+    // falls back to the site's configured defaults.
     expect(body.from).toBeUndefined();
     expect(body.fromName).toBeUndefined();
+    expect(body.captchaToken).toBeUndefined();
   });
 
   it('forwards from and fromName verbatim when the caller sets them', async () => {
@@ -90,6 +91,21 @@ describe('createMailClient', () => {
     const body = JSON.parse(fetchSpy.mock.calls[0]?.[1]?.body as string);
     expect(body.from).toBe('applications@afhco.gogee.ai');
     expect(body.fromName).toBe('AFHCO Applications');
+  });
+
+  it('forwards captchaToken verbatim when the caller sets it', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(jsonResponse({ ok: true }));
+    const mail = createMailClient({
+      bootstrapUrl: 'https://afhco.gogee.ai/api/bootstrap',
+      fetch: fetchSpy as unknown as typeof fetch,
+    });
+    await mail.sendMail({
+      subject: 'Test',
+      html: '<p>body</p>',
+      captchaToken: 'cf-turnstile-synthetic-token-XXXX',
+    });
+    const body = JSON.parse(fetchSpy.mock.calls[0]?.[1]?.body as string);
+    expect(body.captchaToken).toBe('cf-turnstile-synthetic-token-XXXX');
   });
 
   it('returns ok:false with the server error message on a non-2xx', async () => {
