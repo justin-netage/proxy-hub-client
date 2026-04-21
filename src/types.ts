@@ -66,9 +66,11 @@ export interface InitResult {
   proxyUrl: (url: string | null | undefined) => string;
   /**
    * Mail sender pointed at the hub's /api/mail/send route for this site.
-   * The hub identifies the site by Host header and enforces the
-   * configured from-address, recipient allowlist, and rate limits — the
-   * caller only supplies the subject/html and optional recipient.
+   * The hub identifies the site by Host header and fills in the
+   * configured from-address / recipient / rate limits from the site's
+   * dashboard config. Each call can override `from`, `fromName`, and
+   * `to` — the hub still domain-checks `from` against the site's
+   * authenticated domain.
    */
   mail: MailClient;
   /** The bootstrap config used to construct the client. */
@@ -76,20 +78,34 @@ export interface InitResult {
 }
 
 /**
- * Body of a sendMail() call. The hub pins the from-address per-site, so
- * the caller never controls it. `to` is optional — if omitted, the hub
- * routes to the site's configured default recipient.
+ * Body of a sendMail() call. Subject and html are required; everything
+ * else falls back to the site's dashboard config.
  */
 export interface SendMailInput {
   subject: string;
   html: string;
   text?: string;
+  /**
+   * Recipient. If omitted, the hub uses the site's `mail_to_default`.
+   */
   to?: string;
+  /**
+   * Sender address override. If omitted, the hub uses the site's
+   * `mail_from_email`. When set, the domain must match the site's
+   * authenticated domain (shared-mode: under `gogee.ai`; custom-mode:
+   * under `mail_brand_domain`) or the hub returns 409.
+   */
+  from?: string;
+  /**
+   * Friendly sender name override. If omitted, the hub uses the site's
+   * `mail_from_name` (or falls back to `MAIL_DEFAULT_FROM_NAME`).
+   */
+  fromName?: string;
   replyTo?: string;
   /**
    * Free-form tag identifying which form on the site triggered the
-   * send. The hub validates it against the site's allowlist and stores
-   * it in mail_log for deliverability auditing.
+   * send. Stored in `mail_log` for deliverability auditing. No
+   * allowlist — any string works.
    */
   formType?: string;
   /** Path the form was submitted from. Stored in mail_log for context. */
