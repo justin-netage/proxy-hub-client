@@ -2,7 +2,7 @@ import type { SupabaseClient, SupabaseClientOptions } from '@supabase/supabase-j
 
 /**
  * Per-site config returned by the proxy hub's GET /api/bootstrap endpoint.
- * The required three values are public-by-design; `mailTurnstileSiteKey`
+ * The required three values are public-by-design; `mailRecaptchaSiteKey`
  * is optional because older hub deployments don't return it.
  */
 export interface BootstrapConfig {
@@ -21,16 +21,17 @@ export interface BootstrapConfig {
   /** Supabase anon key. Public; safe to ship to the browser. */
   anonKey: string;
   /**
-   * Public Cloudflare Turnstile site key (not the secret — the secret
-   * lives only on the hub). One shared widget covers every site on the
-   * hub. `null` when the hub has no captcha configured, which tells the
-   * site to skip rendering the Turnstile widget entirely.
+   * Public Google reCAPTCHA v2 site key (not the secret — the secret
+   * lives only on the hub). Each site has its own site key, configured
+   * by the hub operator in the MailPanel. `null` when the site isn't
+   * configured with captcha, which tells the site to skip rendering
+   * the reCAPTCHA widget entirely.
    *
    * The site still calls `mail.sendMail({ captchaToken })` with or
    * without a token; the hub enforces `mail_captcha_required` per-site
    * and rejects calls missing a token when required.
    */
-  mailTurnstileSiteKey?: string | null;
+  mailRecaptchaSiteKey?: string | null;
 }
 
 export interface InitOptions {
@@ -115,10 +116,10 @@ export interface SendMailInput {
   fromName?: string;
   replyTo?: string;
   /**
-   * Cloudflare Turnstile token, obtained from the Turnstile widget
+   * Google reCAPTCHA v2 token, obtained from the reCAPTCHA widget
    * rendered on the form. Required when the site has
    * `mail_captcha_required=true` (default) AND the hub has a
-   * Turnstile secret configured. Ignored otherwise.
+   * reCAPTCHA secret configured for this site. Ignored otherwise.
    */
   captchaToken?: string;
   /**
