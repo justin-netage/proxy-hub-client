@@ -2,7 +2,8 @@ import type { SupabaseClient, SupabaseClientOptions } from '@supabase/supabase-j
 
 /**
  * Per-site config returned by the proxy hub's GET /api/bootstrap endpoint.
- * All three values are public-by-design.
+ * The required three values are public-by-design; `mailTurnstileSiteKey`
+ * is optional because older hub deployments don't return it.
  */
 export interface BootstrapConfig {
   /**
@@ -19,6 +20,17 @@ export interface BootstrapConfig {
   proxyDomain: string;
   /** Supabase anon key. Public; safe to ship to the browser. */
   anonKey: string;
+  /**
+   * Public Cloudflare Turnstile site key (not the secret — the secret
+   * lives only on the hub). One shared widget covers every site on the
+   * hub. `null` when the hub has no captcha configured, which tells the
+   * site to skip rendering the Turnstile widget entirely.
+   *
+   * The site still calls `mail.sendMail({ captchaToken })` with or
+   * without a token; the hub enforces `mail_captcha_required` per-site
+   * and rejects calls missing a token when required.
+   */
+  mailTurnstileSiteKey?: string | null;
 }
 
 export interface InitOptions {
