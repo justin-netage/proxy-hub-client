@@ -3,7 +3,8 @@ import type { SupabaseClient, SupabaseClientOptions } from '@supabase/supabase-j
 /**
  * Per-site config returned by the proxy hub's GET /api/bootstrap endpoint.
  * The required three values are public-by-design; `mailRecaptchaSiteKey`
- * is optional because older hub deployments don't return it.
+ * and `mailCaptchaRequired` are optional because older hub deployments
+ * don't return them.
  */
 export interface BootstrapConfig {
   /**
@@ -24,14 +25,18 @@ export interface BootstrapConfig {
    * Public Google reCAPTCHA v2 site key (not the secret — the secret
    * lives only on the hub). Each site has its own site key, configured
    * by the hub operator in the MailPanel. `null` when the site isn't
-   * configured with captcha, which tells the site to skip rendering
-   * the reCAPTCHA widget entirely.
-   *
-   * The site still calls `mail.sendMail({ captchaToken })` with or
-   * without a token; the hub enforces `mail_captcha_required` per-site
-   * and rejects calls missing a token when required.
+   * configured with captcha, OR when `mailCaptchaRequired` is false.
+   * Either way the site skips rendering the reCAPTCHA widget entirely.
    */
   mailRecaptchaSiteKey?: string | null;
+  /**
+   * Per-site switch for reCAPTCHA enforcement. When `false`, the hub
+   * neither asks for nor verifies a captcha token; when `true` (the
+   * default) it verifies tokens as long as both a site key and secret
+   * are configured. Undefined on older hub deployments — treat as
+   * `true` for backwards compatibility.
+   */
+  mailCaptchaRequired?: boolean;
 }
 
 export interface InitOptions {
@@ -118,8 +123,9 @@ export interface SendMailInput {
   /**
    * Google reCAPTCHA v2 token, obtained from the reCAPTCHA widget
    * rendered on the form. Required when the site has
-   * `mail_captcha_required=true` (default) AND the hub has a
-   * reCAPTCHA secret configured for this site. Ignored otherwise.
+   * `mailCaptchaRequired=true` (default) AND the hub has both a
+   * reCAPTCHA site key and secret configured for this site. Ignored
+   * otherwise.
    */
   captchaToken?: string;
   /**
