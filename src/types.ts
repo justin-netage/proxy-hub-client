@@ -19,6 +19,19 @@ export interface BootstrapConfig {
    * flows through the proxy.
    */
   proxyDomain: string;
+  /**
+   * Optional fully-qualified proxy origin for Supabase Functions, e.g.
+   * "https://api.example.com". When set, `supabase.functions.invoke()`
+   * is wired to send Functions traffic here instead of the canonical
+   * `<ref>.functions.supabase.co`. `null` (or undefined on older hub
+   * deployments) means functions calls go to the default Supabase host.
+   *
+   * Use this for routing payment-gateway webhook callbacks (Netcash,
+   * Stripe, etc.) through your own domain — the upstream Function must
+   * be deployed with `verify_jwt = false` since the proxy passes auth
+   * headers through unchanged.
+   */
+  functionsDomain?: string | null;
   /** Supabase anon key. Public; safe to ship to the browser. */
   anonKey: string;
   /**
