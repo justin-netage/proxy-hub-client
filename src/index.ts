@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, FunctionsClient } from '@supabase/supabase-js';
 import { fetchBootstrap, _resetBootstrapCache } from './bootstrap.js';
 import { createProxyUrl } from './proxyUrl.js';
 import { createMailClient } from './mail.js';
@@ -38,7 +38,7 @@ function buildClient(
 ) {
   const storage = defaultStorage();
   const inBrowser = typeof window !== 'undefined';
-  return createClient(config.proxyDomain, config.anonKey, {
+  const client = createClient(config.proxyDomain, config.anonKey, {
     auth: {
       persistSession: inBrowser,
       autoRefreshToken: inBrowser,
@@ -47,6 +47,29 @@ function buildClient(
     },
     ...clientOptions,
   });
+
+  // Repoint supabase.functions at the Functions proxy domain when one is
+  // configured. supabase-js derives its FunctionsClient URL from
+  // supabaseUrl (`<supabaseUrl>/functions/v1`), so without this override
+  // functions.invoke() would hit the data proxy instead of the Functions
+  // proxy. We construct a fresh FunctionsClient pointed at functionsDomain
+  // and swap it in. The default headers carry the anon key so first-party
+  // SPA calls still authenticate; webhooks (Netcash, etc.) hit the
+  // Functions URL directly without going through this client.
+  if (config.functionsDomain) {
+    const functions = new FunctionsClient(config.functionsDomain, {
+      headers: {
+        apikey: config.anonKey,
+        Authorization: `Bearer ${config.anonKey}`,
+      },
+    });
+    // The `functions` field on SupabaseClient is `readonly` in the type
+    // declarations but the runtime allows reassignment — supabase-js does
+    // the same swap internally when refreshing auth.
+    (client as unknown as { functions: FunctionsClient }).functions = functions;
+  }
+
+  return client;
 }
 
 /**
