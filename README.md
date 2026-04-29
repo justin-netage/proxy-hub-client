@@ -86,9 +86,11 @@ verify_jwt = false
 
 ```
 Netcash → POST https://api.example.com/netcash-notify
-        → proxy hub (Host: api.example.com → site lookup → functions_url)
+        → proxy hub (Host: api.example.com → site lookup)
         → https://<ref>.functions.supabase.co/netcash-notify
 ```
+
+The hub derives the Functions upstream from the site's Supabase URL (it's the same `<ref>`), so you only configure the customer-facing custom domain — there's no separate "Functions URL" field to fill in.
 
 ### Synchronous variant (Pattern A)
 
@@ -100,7 +102,7 @@ import { createProxiedSupabase } from '@justin-netage/supabase-proxy-client';
 export const { supabase, proxyUrl } = createProxiedSupabase({
   projectRef: 'abc123',
   proxyDomain: 'https://data-afhco.gogee.ai',
-  functionsDomain: 'https://api.afhco.gogee.ai', // optional
+  functionsDomain: 'https://api.afhco.gogee.ai', // optional — omit if you don't proxy Functions
   anonKey: 'eyJ...',
 });
 ```
@@ -141,7 +143,7 @@ The proxy hub's `GET /api/bootstrap` endpoint returns:
 
 - Looked up by the request's `Host` header against `sites.custom_domain`, `sites.data_custom_domain`, or `sites.functions_custom_domain`.
 - All values are public-by-design — safe to ship to the browser.
-- `functionsDomain` is `null` when the site has no Functions proxy configured; older hub deployments omit the field entirely.
+- `functionsDomain` is `null` when the site has no Functions proxy configured (or when `supabase_url` isn't a canonical Supabase host the upstream URL can be derived from); older hub deployments omit the field entirely.
 - Cached for ~30s via `Cache-Control: public, max-age=30, stale-while-revalidate=60`.
 - Rate-limited per IP (60 requests / 15 minutes).
 
