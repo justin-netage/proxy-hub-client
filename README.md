@@ -14,11 +14,13 @@ Lovable's build pipeline strips or overrides custom Vite env vars (`VITE_SUPABAS
 │  site (SPA)  │                             │  proxy-hub      │
 │              │ ◀──────────────────── │                 │
 │              │   2. { projectRef, anonKey, │  looks up site  │
-│              │       proxyDomain }         │  by Host header │
+│              │       proxyDomain,          │  by Host header │
+│              │       functionsDomain? }    │                 │
 │              │                             └─────────────────┘
 │              │
 │              │ 3. createClient(proxyDomain, anonKey)
-│              │ 4. all subsequent Supabase traffic → proxy-hub
+│              │ 4. all subsequent Supabase REST/Auth/Storage → proxy-hub
+│              │ 5. supabase.functions.invoke() → functionsDomain (if set)
 └─────────────┘
 ```
 
@@ -64,6 +66,30 @@ Use `proxyUrl()` to rewrite stored Supabase URLs (e.g. legacy `getPublicUrl()` r
 <img src={proxyUrl(row.image_url)} alt={row.title} />
 ```
 
+### Calling Supabase Functions
+
+When the hub is configured with a `functionsCustomDomain` for the site, the client automatically points `supabase.functions.invoke()` at that domain — no extra setup required:
+
+```ts
+const { data, error } = await supabase.functions.invoke('hello', {
+  body: { name: 'world' },
+});
+// → POST https://api.example.com/hello
+```
+
+For payment-gateway webhooks (Netcash, Stripe, etc.), the gateway POSTs directly to the same hostname and the proxy passes the Authorization header through unchanged. The upstream Function **must** be deployed with `verify_jwt = false` so it accepts unauthenticated callbacks:
+
+```toml
+# supabase/functions/netcash-notify/config.toml
+verify_jwt = false
+```
+
+```
+Netcash → POST https://api.example.com/netcash-notify
+        → proxy hub (Host: api.example.com → site lookup → functions_url)
+        → https://<ref>.functions.supabase.co/netcash-notify
+```
+
 ### Synchronous variant (Pattern A)
 
 If you'd rather hardcode config and skip the bootstrap fetch:
@@ -74,6 +100,7 @@ import { createProxiedSupabase } from '@justin-netage/supabase-proxy-client';
 export const { supabase, proxyUrl } = createProxiedSupabase({
   projectRef: 'abc123',
   proxyDomain: 'https://data-afhco.gogee.ai',
+  functionsDomain: 'https://api.afhco.gogee.ai', // optional
   anonKey: 'eyJ...',
 });
 ```
@@ -107,13 +134,15 @@ The proxy hub's `GET /api/bootstrap` endpoint returns:
 {
   "projectRef": "abc123",
   "proxyDomain": "https://data-afhco.gogee.ai",
+  "functionsDomain": "https://api.afhco.gogee.ai",
   "anonKey": "eyJ..."
 }
 ```
 
-- Looked up by the request's `Host` header against `sites.custom_domain` or `sites.data_custom_domain`.
+- Looked up by the request's `Host` header against `sites.custom_domain`, `sites.data_custom_domain`, or `sites.functions_custom_domain`.
 - All values are public-by-design — safe to ship to the browser.
-- Cached for 5 minutes via `Cache-Control: public, max-age=300, stale-while-revalidate=3600`.
+- `functionsDomain` is `null` when the site has no Functions proxy configured; older hub deployments omit the field entirely.
+- Cached for ~30s via `Cache-Control: public, max-age=30, stale-while-revalidate=60`.
 - Rate-limited per IP (60 requests / 15 minutes).
 
 ## Development
