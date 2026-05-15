@@ -26,21 +26,8 @@ Some build pipelines strip or override custom Vite env vars (`VITE_SUPABASE_URL_
 
 ## Install
 
-This package is published to **GitHub Packages** (private). Consumers need a `.npmrc` with a token that has `read:packages` scope:
-
-```
-@justin-netage:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
-
 ```sh
 npm install @justin-netage/supabase-proxy-client @supabase/supabase-js
-```
-
-If your build pipeline doesn't honor `.npmrc`, fall back to a git-URL install:
-
-```sh
-npm install git+https://github.com/justin-netage/proxy-hub-client.git#v1.0.0
 ```
 
 ## Usage
@@ -162,4 +149,4 @@ npm version patch  # or minor / major
 git push --follow-tags
 ```
 
-The `publish.yml` workflow handles the GitHub Packages upload.
+The `publish.yml` workflow publishes the tag to the public npm registry.
